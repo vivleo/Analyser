@@ -1,0 +1,16 @@
+dans ou et non ( ) tous tout
+R :: dans C
+R :: V
+C :: T O
+T :: N E
+N :: S
+S :: ( C )
+O :: ou T O
+E :: et N E
+N :: non S
+S :: tout
+V :: tous
+V :: %epsilon
+O :: %epsilon
+E :: %epsilon
+N :: %epsilon
