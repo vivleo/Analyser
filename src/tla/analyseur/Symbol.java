@@ -18,7 +18,7 @@ public class Symbol implements Comparable<Symbol> {
     }
 
     public static Symbol createEpsilon() {
-        Symbol sb = new Symbol("");
+        Symbol sb = new Symbol("%epsilon");
         sb.epsilon = true;
         return sb;
     }

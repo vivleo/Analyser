@@ -33,7 +33,7 @@ public class Production {
 	public static SymbolSet first(Symbol s) {
 		SymbolSet S = new SymbolSet();
 		//Ensemble règle production
-
+		Map<String,SymbolSet> firstWithoutF=Controller.firstForFollow;
 		ProductionSet prodSetTemp=Controller.P;
 
 		//ensemble terminaux
@@ -64,21 +64,83 @@ public class Production {
 				continue;
 			}
 			if(containEpsilon(workingProd)) {
-				S.add("%epsilon");
+				S.add(Symbol.createEpsilon());
 
 			}
+			if (workingProd.get(i).getExpression().size()>1) {
+				if (!workingProd.get(i).expression.get(0).isTerminal() && !workingProd.get(i).expression.get(0).isEpsilon()) {
+					//Fusionner les 2 sets obtenus
 
-			if (!workingProd.get(i).expression.get(0).isTerminal() && !workingProd.get(i).expression.get(0).isEpsilon() ) {
-				//Fusionner les 2 sets obtenus
-				S.addAll(first(workingProd.get(i).expression.get(0)));
+					if (first(workingProd.get(i).getExpression().get(0)).contains("%epsilon") && !workingProd.get(i).expression.get(1).isTerminal() && !workingProd.get(i).expression.get(1).isEpsilon()){
+						S.addAll(first(workingProd.get(i).expression.get(0)));
+						S.addAll(first(workingProd.get(i).expression.get(1)));
+					}
 
+				}
 			}
 		}
 		
 		
 		return S;
 	}
+	public static SymbolSet firstWithoutEpsilon(Symbol s) {
+		SymbolSet S = new SymbolSet();
+		//Ensemble règle production
 
+		ProductionSet prodSetTemp=Controller.P;
+		ProductionSet prodSet=new ProductionSet();
+		//ensemble terminaux
+		SymbolSet termTemp=Controller.T;
+
+		//ArrayList contenant les symboles déjà traités
+		for (int i=0;i<prodSetTemp.size();i++){
+			boolean notEpsilon=false;
+			for (int j=0;j<prodSetTemp.get(i).getExpression().size();j++) {
+				if (prodSetTemp.get(i).getExpression().get(j).toString().equals("%epsilon")) {
+					notEpsilon=true;
+				}else{
+					continue;
+				}
+			}
+			if (!notEpsilon){
+				prodSet.add(prodSetTemp.get(i));
+			}
+		}
+
+		//Création set de travail vide
+
+		ProductionSet workingProd=new ProductionSet();
+		//Remplissage du Set de travail
+		for (int i=0;i<prodSet.size();i++){
+			if (prodSet.get(i).symbol.equals(s))
+			{
+				workingProd.add(prodSet.get(i));
+				//System.out.println(i+" : Symbole :"+prodSet.get(i).symbol.toString()+" , Expression : "+ prodSet.get(i).expression.toString());
+			}
+			else{
+				continue;
+			}
+		}
+		/*for (int x=0;x<prodSetTemp.size();x++) {
+			System.out.println(prodSetTemp.get(x).symbol+" ¡!¡ "+ prodSetTemp.get(x).expression);
+		}*/
+
+		for (int i=0;i<workingProd.size();i++) {
+			if (termTemp.contains(workingProd.get(i).expression.get(0)) ) {
+				//System.out.println("Terminal : ajout de |"+workingProd.get(i).expression.get(0)+"|");
+				S.add(workingProd.get(i).expression.get(0));
+				continue;
+			}
+			if(containEpsilon(workingProd)) {
+				continue;
+			}
+			if (!workingProd.get(i).expression.get(0).isTerminal() && !workingProd.get(i).expression.get(0).isEpsilon() ) {
+				//Fusionner les 2 sets obtenus
+				S.addAll(firstWithoutEpsilon(workingProd.get(i).expression.get(0)));
+			}
+		}
+		return S;
+	}
 
 
 
@@ -101,54 +163,59 @@ public class Production {
 		ProductionSet prodSetTemp=Controller.P;
 		//ensemble terminaux
 		SymbolSet termTemp=Controller.T;
+		Map<String,SymbolSet> firstBis=Controller.first;
 		Map<String,SymbolSet> firstTree=Controller.firstForFollow;
-
+		String sym=s.toString();
+		/*System.out.println("sym : "+s);
+		System.out.println("Premier symbole : "+prodSetTemp.get(0).getSymbol().toString());
+		System.out.println(prodSetTemp.get(0).getSymbol().toString().equals(s.toString()));*/
 		ArrayList<Production> workingRule=new ArrayList<>();
 		//System.out.println("Symbole s : "+prodSetTemp.get(0).symbol.toString());
 		//System.out.println(prodSetTemp.size());
+		if (prodSetTemp.get(0).getSymbol().toString().equals(s.toString())){
+			S.add(Symbol.createDollar());
 
+		}
 		//Set de travail
 		for (int i=0;i<prodSetTemp.size();i++) {
-			if(prodSetTemp.get(i).getExpression().contains(s)) {
+			if (prodSetTemp.get(i).getExpression().size()==1 && prodSetTemp.get(i).getExpression().toString().equals("%epsilon")){
+				continue;
+			}
+			else if(prodSetTemp.get(i).getExpression().contains(s)) {
 				workingRule.add(prodSetTemp.get(i));
 				//System.out.println(prodSetTemp.get(i).symbol+" :: "+prodSetTemp.get(i).expression);
-
 			}
-
 		}
 		//Règle par règle
 		for (int i=0;i<workingRule.size();i++) {
-			//System.out.println(workingRule.get(i).symbol+" :: "+workingRule.get(i).expression);
-			//System.out.println(s);
 			Production tmp = workingRule.get(i);
 			int index=tmp.getExpression().indexOf(s);
-			//System.out.println(s.toString().equals(prodSetTemp.get(0).symbol.toString()));
-			if (prodSetTemp.get(0).getSymbol().toString().equals(s.toString())){
-				S.add(Symbol.createDollar());
-			}
+
 			if (index == tmp.getExpression().size()-1) {
 				if (tmp.getExpression().get(index).toString().equals(tmp.getSymbol().toString())) {
 					S.add(Symbol.createDollar());
 				}else {
 					if (a<50){
-						S.addAll(follow(tmp.symbol, a+1));
+						S.addAll(follow(tmp.getSymbol(), a+1));
 					}
 					else{
 						S.add(Symbol.createDollar());
 					}
 				}
 			}
-			else if(index<tmp.expression.size()-1) {
-				if (tmp.getExpression().get(index+1).isTerminal()) {
-					S.add(tmp.expression.get(index+1));
+			else if(index<tmp.getExpression().size()-1) {
+				if (tmp.getExpression().get(index+1).isTerminal() && !tmp.getExpression().get(index+1).isEpsilon()) {
+					S.add(tmp.getExpression().get(index+1));
 				}
-				else if (tmp.getExpression().get(index+1).isEpsilon()){
-					S.add(Symbol.createDollar());
+				else if (firstBis.get(tmp.getExpression().get(index + 1).toString()).contains(Symbol.createEpsilon().toString()) && !tmp.getExpression().get(index+1).isTerminal() && !tmp.getExpression().get(index+1).isEpsilon()) {
+					S.addAll(follow(tmp.getSymbol(),a+1));
+					S.addAll(firstBis.get(tmp.getExpression().get(index+1).toString()));
 				}
-				else if (first(tmp.getExpression().get(index+1)).contains("%epsilon")) {
-					S.addAll(follow(tmp.symbol,a));
+				else if (firstBis.get(tmp.getExpression().get(index + 1).toString()).contains(Symbol.createEpsilon().toString()) && tmp.getExpression().get(index+1).isTerminal() && !tmp.getExpression().get(index+1).isEpsilon()) {
+					S.addAll(follow(tmp.getSymbol(),a+1));
+					S.add(tmp.getExpression().get(index+1));
 				}
-				else if (!first(tmp.getExpression().get(index+1)).contains("%epsilon")) {
+				else if (!firstBis.get(tmp.getExpression().get(index+1).toString()).contains(Symbol.createEpsilon().toString())) {
 					S.addAll(firstTree.get(tmp.symbol.toString()));
 					//S.add(Symbol.createEpsilon());
 				}
